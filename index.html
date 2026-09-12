@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#151718">
+  <meta name="description" content="Swipe-based medical microbiology recall game.">
+  <title>Bacteria Survival</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="app-shell" id="app">
+    <section class="screen home-screen" id="homeScreen" aria-labelledby="homeTitle">
+      <header class="brand-row">
+        <div>
+          <p class="eyebrow">Medical Microbiology</p>
+          <h1 id="homeTitle">Bacteria Survival</h1>
+        </div>
+        <span class="db-pill" id="dataStatus">Loading database…</span>
+      </header>
+
+      <div class="hero-copy">
+        <p>Know the organism. Survive every feature.</p>
+        <div class="database-counts" aria-live="polite">
+          <span><strong id="organismCount">—</strong> organisms</span>
+          <span><strong id="questionCount">—</strong> questions</span>
+        </div>
+      </div>
+
+      <section class="setup-panel" aria-label="Game setup">
+        <label for="organismSelect">Organism</label>
+        <select id="organismSelect">
+          <option value="random">Random organism</option>
+        </select>
+
+        <fieldset class="mode-picker">
+          <legend>Mode</legend>
+          <label class="mode-option">
+            <input type="radio" name="mode" value="survival" checked>
+            <span><strong>Survival</strong><small>One mistake ends the run.</small></span>
+          </label>
+          <label class="mode-option">
+            <input type="radio" name="mode" value="practice">
+            <span><strong>Practice</strong><small>See an explanation after every answer.</small></span>
+          </label>
+        </fieldset>
+
+        <button class="primary-button" id="startButton" type="button" disabled>Start game</button>
+      </section>
+
+      <p class="gesture-key"><span>← Negative</span><span>Positive →</span></p>
+    </section>
+
+    <section class="screen game-screen is-hidden" id="gameScreen" aria-labelledby="organismName">
+      <header class="game-header">
+        <button class="icon-button" id="homeButton" type="button" aria-label="Return to home">×</button>
+        <div class="progress-wrap" aria-label="Round progress">
+          <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+          <span id="progressText">1 / 8</span>
+        </div>
+        <div class="lives" id="lives" aria-label="Lives">♥</div>
+      </header>
+
+      <section class="organism-heading">
+        <p class="eyebrow">Your organism</p>
+        <h2 id="organismName"></h2>
+        <div class="organism-tags" id="organismTags"></div>
+      </section>
+
+      <div class="card-stage" id="cardStage">
+        <article class="question-card" id="questionCard" tabindex="0" aria-live="polite">
+          <div class="swipe-stamp stamp-negative" aria-hidden="true">NEGATIVE</div>
+          <div class="swipe-stamp stamp-positive" aria-hidden="true">POSITIVE</div>
+          <div class="card-meta">
+            <span id="categoryBadge">Biochemical</span>
+            <span id="hyBadge" class="hy-badge">HIGH YIELD</span>
+          </div>
+          <p class="question-label">Does this describe your organism?</p>
+          <h3 id="questionPrompt"></h3>
+          <p class="drag-hint">Swipe the card or use the buttons below.</p>
+        </article>
+      </div>
+
+      <div class="answer-buttons" aria-label="Answer choices">
+        <button class="answer-button negative-button" id="negativeButton" type="button">
+          <span class="answer-arrow">←</span>
+          <span><strong>Negative</strong><small>No / false</small></span>
+        </button>
+        <button class="answer-button positive-button" id="positiveButton" type="button">
+          <span><strong>Positive</strong><small>Yes / true</small></span>
+          <span class="answer-arrow">→</span>
+        </button>
+      </div>
+
+      <p class="keyboard-hint">Keyboard: ← negative · → positive</p>
+    </section>
+
+    <section class="screen result-screen is-hidden" id="resultScreen" aria-labelledby="resultTitle">
+      <div class="result-mark" id="resultMark">✓</div>
+      <p class="eyebrow" id="resultEyebrow">Survived</p>
+      <h2 id="resultTitle">Organism cleared</h2>
+      <p class="result-organism" id="resultOrganism"></p>
+      <p class="result-summary" id="resultSummary"></p>
+
+      <div class="feedback-card is-hidden" id="feedbackCard">
+        <div class="feedback-answer" id="feedbackAnswer"></div>
+        <p id="feedbackPrompt"></p>
+        <p class="feedback-explanation" id="feedbackExplanation"></p>
+        <p class="feedback-source" id="feedbackSource"></p>
+      </div>
+
+      <div class="result-actions">
+        <button class="primary-button" id="againButton" type="button">New organism</button>
+        <button class="secondary-button" id="retryButton" type="button">Retry this organism</button>
+      </div>
+    </section>
+
+    <section class="feedback-overlay is-hidden" id="practiceFeedback" aria-live="assertive">
+      <div class="feedback-sheet">
+        <p class="feedback-status" id="practiceStatus"></p>
+        <h3 id="practiceAnswer"></h3>
+        <p id="practiceExplanation"></p>
+        <p class="feedback-source" id="practiceSource"></p>
+        <button class="primary-button" id="continueButton" type="button">Continue</button>
+      </div>
+    </section>
+  </main>
+
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
