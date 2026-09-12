@@ -1,0 +1,20 @@
+MicroSwipe Progress Update
+
+Replace these files in the GitHub repository:
+- index.html
+- styles.css
+- app.js
+
+What it adds:
+- Persistent per-device progress using browser localStorage
+- Progress screen with per-organism Cleared / Lost / survival rate
+- Practice completion count
+- Total clears, total losses, unique organisms cleared, overall survival rate
+- Searchable organism history
+- Reset all progress button
+
+Notes:
+- No account or backend is required.
+- Progress stays after closing/reopening the browser.
+- Progress is specific to that browser/device and can be lost if site data is cleared.
+- Future database updates will not erase progress as long as an organism keeps the same displayed name.

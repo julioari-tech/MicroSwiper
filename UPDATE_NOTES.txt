@@ -1,0 +1,19 @@
+MicroSwipe Sketchy database update
+================================
+
+Database version: 2
+Source: SketchyDB.xlsx
+Profiles: 73
+Swipe questions: 753
+
+Important:
+- Each organism has its own profile.
+- Question counts intentionally vary by organism.
+- A round now uses ALL available questions for the selected organism.
+- Content in the generated database is derived from SketchyDB.xlsx only.
+- The existing gameplay, sounds, Practice mode, and Survival mode are preserved.
+
+To update GitHub Pages:
+1. Replace data/bacteria.json in the MicroSwiper repository with the included file.
+2. If desired, also replace index.html to display "MicroSwipe" as the site title.
+3. Commit/push to the branch used by GitHub Pages.
