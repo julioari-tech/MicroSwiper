@@ -59,28 +59,64 @@
 
   const config = window.BACTERIA_SURVIVAL_CONFIG || {};
 
-  const sounds = {
-    correct: new Audio("./assets/audio/correct-swipe.wav"),
-    win: new Audio("./assets/audio/win.wav"),
-    lose: new Audio("./assets/audio/lose.wav")
-  };
+  // Sound effects are synthesized with the Web Audio API so the site does
+  // not depend on external .wav files. Audio is created/resumed only after
+  // a user interaction to comply with mobile/browser autoplay policies.
+  let audioContext = null;
 
-  Object.values(sounds).forEach((audio) => {
-    audio.preload = "auto";
-  });
+  function getAudioContext() {
+    if (audioContext) return audioContext;
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) return null;
+    audioContext = new AudioContextClass();
+    return audioContext;
+  }
+
+  function unlockAudio() {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+    if (ctx.state === "suspended") {
+      ctx.resume().catch(() => {});
+    }
+  }
+
+  function tone(ctx, frequency, start, duration, gainValue, type = "sine") {
+    const oscillator = ctx.createOscillator();
+    const gain = ctx.createGain();
+    oscillator.type = type;
+    oscillator.frequency.setValueAtTime(frequency, start);
+    gain.gain.setValueAtTime(0.0001, start);
+    gain.gain.exponentialRampToValueAtTime(gainValue, start + 0.012);
+    gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+    oscillator.connect(gain);
+    gain.connect(ctx.destination);
+    oscillator.start(start);
+    oscillator.stop(start + duration + 0.02);
+  }
 
   function playSound(name) {
-    const audio = sounds[name];
-    if (!audio) return;
-    try {
-      audio.pause();
-      audio.currentTime = 0;
-      const playback = audio.play();
-      if (playback && typeof playback.catch === "function") {
-        playback.catch(() => {});
+    const ctx = getAudioContext();
+    if (!ctx) return;
+
+    const play = () => {
+      const now = ctx.currentTime + 0.01;
+      if (name === "correct") {
+        tone(ctx, 660, now, 0.09, 0.055, "sine");
+        tone(ctx, 880, now + 0.075, 0.12, 0.05, "sine");
+      } else if (name === "win") {
+        tone(ctx, 523.25, now, 0.16, 0.05, "sine");
+        tone(ctx, 659.25, now + 0.09, 0.18, 0.05, "sine");
+        tone(ctx, 783.99, now + 0.18, 0.24, 0.055, "sine");
+      } else if (name === "lose") {
+        tone(ctx, 246.94, now, 0.18, 0.055, "triangle");
+        tone(ctx, 196.00, now + 0.12, 0.24, 0.05, "triangle");
       }
-    } catch (error) {
-      console.debug("Sound playback unavailable.", error);
+    };
+
+    if (ctx.state === "suspended") {
+      ctx.resume().then(play).catch(() => {});
+    } else {
+      play();
     }
   }
 
@@ -278,6 +314,7 @@
 
   function answer(value, direction) {
     if (state.locked) return;
+    unlockAudio();
     const q = currentQuestion();
     if (!q) return;
     state.locked = true;
