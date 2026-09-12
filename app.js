@@ -5,6 +5,18 @@
   const homeScreen = document.getElementById("homeScreen");
   const gameScreen = document.getElementById("gameScreen");
   const resultScreen = document.getElementById("resultScreen");
+  const progressScreen = document.getElementById("progressScreen");
+  const playTabButton = document.getElementById("playTabButton");
+  const progressTabButton = document.getElementById("progressTabButton");
+  const progressHomeButton = document.getElementById("progressHomeButton");
+  const progressSearch = document.getElementById("progressSearch");
+  const progressList = document.getElementById("progressList");
+  const progressEmpty = document.getElementById("progressEmpty");
+  const resetProgressButton = document.getElementById("resetProgressButton");
+  const totalClears = document.getElementById("totalClears");
+  const totalLosses = document.getElementById("totalLosses");
+  const uniqueCleared = document.getElementById("uniqueCleared");
+  const overallWinRate = document.getElementById("overallWinRate");
   const dataStatus = document.getElementById("dataStatus");
   const organismCount = document.getElementById("organismCount");
   const questionCount = document.getElementById("questionCount");
@@ -58,6 +70,222 @@
   };
 
   const config = window.BACTERIA_SURVIVAL_CONFIG || {};
+
+  const PROGRESS_STORAGE_KEY = "microswipeProgress_v1";
+
+  function emptyProgress() {
+    return { version: 1, organisms: {} };
+  }
+
+  function loadProgress() {
+    try {
+      const raw = window.localStorage.getItem(PROGRESS_STORAGE_KEY);
+      if (!raw) return emptyProgress();
+      const parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed !== "object" || typeof parsed.organisms !== "object") {
+        return emptyProgress();
+      }
+      return parsed;
+    } catch (error) {
+      console.warn("Saved progress could not be read.", error);
+      return emptyProgress();
+    }
+  }
+
+  function saveProgress(progress) {
+    try {
+      window.localStorage.setItem(PROGRESS_STORAGE_KEY, JSON.stringify(progress));
+    } catch (error) {
+      console.warn("Progress could not be saved.", error);
+    }
+  }
+
+  function progressKey(organism) {
+    return String(organism?.name || organism?.id || "unknown").trim().toLowerCase();
+  }
+
+  function organismProgress(organism) {
+    const progress = loadProgress();
+    return progress.organisms[progressKey(organism)] || {
+      clears: 0,
+      losses: 0,
+      practiceCompletions: 0,
+      correctAnswers: 0,
+      answeredQuestions: 0,
+      lastPlayed: null
+    };
+  }
+
+  function recordRound(result) {
+    if (!state.organism) return;
+    const progress = loadProgress();
+    const key = progressKey(state.organism);
+    const current = progress.organisms[key] || {
+      clears: 0,
+      losses: 0,
+      practiceCompletions: 0,
+      correctAnswers: 0,
+      answeredQuestions: 0,
+      lastPlayed: null
+    };
+
+    if (result === "clear") current.clears += 1;
+    if (result === "loss") current.losses += 1;
+    if (result === "practice") current.practiceCompletions += 1;
+    current.correctAnswers += state.correct;
+    current.answeredQuestions += result === "loss" ? Math.min(state.index + 1, state.deck.length) : state.deck.length;
+    current.lastPlayed = new Date().toISOString();
+    current.organismName = state.organism.name;
+    progress.organisms[key] = current;
+    saveProgress(progress);
+  }
+
+  function formatLastPlayed(iso) {
+    if (!iso) return "Never played";
+    const date = new Date(iso);
+    if (Number.isNaN(date.getTime())) return "Played previously";
+    return `Last played ${date.toLocaleDateString()}`;
+  }
+
+  function renderProgress(filterText = "") {
+    if (!state.data) return;
+    const saved = loadProgress();
+    const query = filterText.trim().toLowerCase();
+    const organisms = state.data.organisms
+      .filter((o) => o && o.id && o.name)
+      .slice()
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    let clears = 0;
+    let lossesCount = 0;
+    let unique = 0;
+    organisms.forEach((o) => {
+      const stats = saved.organisms[progressKey(o)] || {};
+      const c = Number(stats.clears || 0);
+      const l = Number(stats.losses || 0);
+      clears += c;
+      lossesCount += l;
+      if (c > 0) unique += 1;
+    });
+
+    totalClears.textContent = String(clears);
+    totalLosses.textContent = String(lossesCount);
+    uniqueCleared.textContent = `${unique}/${organisms.length}`;
+    const survivalAttempts = clears + lossesCount;
+    overallWinRate.textContent = survivalAttempts ? `${Math.round((clears / survivalAttempts) * 100)}%` : "—";
+
+    progressList.replaceChildren();
+    const filtered = organisms.filter((o) => o.name.toLowerCase().includes(query));
+    filtered.forEach((organism) => {
+      const stats = organismProgress(organism);
+      const attempts = stats.clears + stats.losses;
+      const row = document.createElement("article");
+      row.className = "progress-row";
+
+      const name = document.createElement("div");
+      name.className = "progress-name";
+      const strong = document.createElement("strong");
+      strong.textContent = organism.name;
+      const small = document.createElement("small");
+      const practiceText = stats.practiceCompletions ? ` · ${stats.practiceCompletions} practice ${stats.practiceCompletions === 1 ? "round" : "rounds"}` : "";
+      small.textContent = `${formatLastPlayed(stats.lastPlayed)}${practiceText}`;
+      name.append(strong, small);
+
+      const statWrap = document.createElement("div");
+      statWrap.className = "progress-stats";
+      const clearStat = document.createElement("div");
+      clearStat.className = "progress-stat clear";
+      clearStat.innerHTML = `<b>${stats.clears}</b><small>Cleared</small>`;
+      const lossStat = document.createElement("div");
+      lossStat.className = "progress-stat loss";
+      lossStat.innerHTML = `<b>${stats.losses}</b><small>Lost</small>`;
+      const rateStat = document.createElement("div");
+      rateStat.className = "progress-stat";
+      rateStat.innerHTML = `<b>${attempts ? Math.round((stats.clears / attempts) * 100) + "%" : "—"}</b><small>Rate</small>`;
+      statWrap.append(clearStat, lossStat, rateStat);
+
+      row.append(name, statWrap);
+      progressList.appendChild(row);
+    });
+
+    const hasAnySaved = Object.values(saved.organisms).some((s) => Number(s.clears || 0) + Number(s.losses || 0) + Number(s.practiceCompletions || 0) > 0);
+    progressEmpty.classList.toggle("is-hidden", filtered.length > 0 && (hasAnySaved || query));
+    if (!filtered.length && query) {
+      progressEmpty.textContent = "No organisms match that search.";
+      progressEmpty.classList.remove("is-hidden");
+    } else if (!hasAnySaved) {
+      progressEmpty.textContent = "No saved progress yet. Complete or lose a Survival run to start tracking.";
+      progressEmpty.classList.remove("is-hidden");
+    }
+  }
+
+  function openProgress() {
+    if (!state.data) return;
+    renderProgress(progressSearch.value || "");
+    showScreen(progressScreen);
+    progressSearch.focus({ preventScroll: true });
+  }
+
+  // Sound effects are synthesized with the Web Audio API so the site does
+  // not depend on external .wav files. Audio is created/resumed only after
+  // a user interaction to comply with mobile/browser autoplay policies.
+  let audioContext = null;
+
+  function getAudioContext() {
+    if (audioContext) return audioContext;
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) return null;
+    audioContext = new AudioContextClass();
+    return audioContext;
+  }
+
+  function unlockAudio() {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+    if (ctx.state === "suspended") {
+      ctx.resume().catch(() => {});
+    }
+  }
+
+  function tone(ctx, frequency, start, duration, gainValue, type = "sine") {
+    const oscillator = ctx.createOscillator();
+    const gain = ctx.createGain();
+    oscillator.type = type;
+    oscillator.frequency.setValueAtTime(frequency, start);
+    gain.gain.setValueAtTime(0.0001, start);
+    gain.gain.exponentialRampToValueAtTime(gainValue, start + 0.012);
+    gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+    oscillator.connect(gain);
+    gain.connect(ctx.destination);
+    oscillator.start(start);
+    oscillator.stop(start + duration + 0.02);
+  }
+
+  function playSound(name) {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+
+    const play = () => {
+      const now = ctx.currentTime + 0.01;
+      if (name === "correct") {
+        tone(ctx, 660, now, 0.09, 0.055, "sine");
+        tone(ctx, 880, now + 0.075, 0.12, 0.05, "sine");
+      } else if (name === "win") {
+        tone(ctx, 523.25, now, 0.16, 0.05, "sine");
+        tone(ctx, 659.25, now + 0.09, 0.18, 0.05, "sine");
+        tone(ctx, 783.99, now + 0.18, 0.24, 0.055, "sine");
+      } else if (name === "lose") {
+        tone(ctx, 246.94, now, 0.18, 0.055, "triangle");
+        tone(ctx, 196.00, now + 0.12, 0.24, 0.05, "triangle");
+      }
+    };
+
+    if (ctx.state === "suspended") {
+      ctx.resume().then(play).catch(() => {});
+    } else {
+      play();
+    }
+  }
 
   function shuffle(items) {
     const a = [...items];
@@ -134,7 +362,7 @@
   }
 
   function showScreen(screen) {
-    [homeScreen, gameScreen, resultScreen].forEach((node) => node.classList.add("is-hidden"));
+    [homeScreen, progressScreen, gameScreen, resultScreen].forEach((node) => node.classList.add("is-hidden"));
     screen.classList.remove("is-hidden");
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -253,6 +481,7 @@
 
   function answer(value, direction) {
     if (state.locked) return;
+    unlockAudio();
     const q = currentQuestion();
     if (!q) return;
     state.locked = true;
@@ -265,7 +494,10 @@
     questionCard.style.opacity = "0";
 
     const correct = Boolean(value) === Boolean(q.answer);
-    if (correct) state.correct += 1;
+    if (correct) {
+      state.correct += 1;
+      playSound("correct");
+    }
 
     window.setTimeout(() => {
       if (state.mode === "practice") {
@@ -302,6 +534,7 @@
   }
 
   function finishWin() {
+    recordRound(state.mode === "survival" ? "clear" : "practice");
     progressFill.style.width = "100%";
     resultMark.textContent = "✓";
     resultMark.classList.remove("dead");
@@ -312,9 +545,11 @@
     feedbackCard.classList.add("is-hidden");
     retryButton.textContent = "Play this organism again";
     showScreen(resultScreen);
+    playSound("win");
   }
 
   function finishLoss(q) {
+    recordRound("loss");
     resultMark.textContent = "×";
     resultMark.classList.add("dead");
     resultEyebrow.textContent = "Game over";
@@ -329,6 +564,7 @@
     feedbackCard.classList.remove("is-hidden");
     retryButton.textContent = "Retry this organism";
     showScreen(resultScreen);
+    playSound("lose");
   }
 
   let drag = null;
@@ -381,6 +617,17 @@
     startGame("random");
   });
   retryButton.addEventListener("click", () => startGame(state.retryOrganismId));
+
+  progressTabButton.addEventListener("click", openProgress);
+  playTabButton.addEventListener("click", () => showScreen(homeScreen));
+  progressHomeButton.addEventListener("click", () => showScreen(homeScreen));
+  progressSearch.addEventListener("input", () => renderProgress(progressSearch.value));
+  resetProgressButton.addEventListener("click", () => {
+    const confirmed = window.confirm("Reset all MicroSwipe progress on this device? This cannot be undone.");
+    if (!confirmed) return;
+    saveProgress(emptyProgress());
+    renderProgress(progressSearch.value);
+  });
 
   root.addEventListener("keydown", (event) => {
     if (gameScreen.classList.contains("is-hidden") || state.locked) return;

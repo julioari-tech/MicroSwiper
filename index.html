@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#151718">
   <meta name="description" content="Swipe-based medical microbiology recall game.">
-  <title>Bacteria Survival</title>
+  <title>MicroSwipe</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -14,10 +14,15 @@
       <header class="brand-row">
         <div>
           <p class="eyebrow">Medical Microbiology</p>
-          <h1 id="homeTitle">Bacteria Survival</h1>
+          <h1 id="homeTitle">MicroSwipe</h1>
         </div>
         <span class="db-pill" id="dataStatus">Loading database…</span>
       </header>
+
+      <nav class="home-tabs" aria-label="MicroSwipe sections">
+        <button class="home-tab is-active" id="playTabButton" type="button" aria-current="page">Play</button>
+        <button class="home-tab" id="progressTabButton" type="button">Progress</button>
+      </nav>
 
       <div class="hero-copy">
         <p>Know the organism. Survive every feature.</p>
@@ -49,6 +54,34 @@
       </section>
 
       <p class="gesture-key"><span>← Negative</span><span>Positive →</span></p>
+    </section>
+
+    <section class="screen progress-screen is-hidden" id="progressScreen" aria-labelledby="progressTitle">
+      <header class="brand-row">
+        <div>
+          <p class="eyebrow">Your History</p>
+          <h1 id="progressTitle">Progress</h1>
+        </div>
+        <button class="icon-button" id="progressHomeButton" type="button" aria-label="Return to play">×</button>
+      </header>
+
+      <div class="progress-summary" aria-live="polite">
+        <article><span id="totalClears">0</span><small>Cleared</small></article>
+        <article><span id="totalLosses">0</span><small>Lost</small></article>
+        <article><span id="uniqueCleared">0</span><small>Unique cleared</small></article>
+        <article><span id="overallWinRate">—</span><small>Survival rate</small></article>
+      </div>
+
+      <div class="progress-toolbar">
+        <label for="progressSearch">Find organism</label>
+        <input id="progressSearch" type="search" placeholder="Search bacteria…" autocomplete="off">
+      </div>
+
+      <div class="progress-list" id="progressList"></div>
+      <p class="progress-empty is-hidden" id="progressEmpty">No saved progress yet. Complete or lose a Survival run to start tracking.</p>
+
+      <button class="danger-button" id="resetProgressButton" type="button">Reset all progress</button>
+      <p class="storage-note">Progress is saved only in this browser on this device.</p>
     </section>
 
     <section class="screen game-screen is-hidden" id="gameScreen" aria-labelledby="organismName">
