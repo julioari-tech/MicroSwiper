@@ -59,6 +59,31 @@
 
   const config = window.BACTERIA_SURVIVAL_CONFIG || {};
 
+  const sounds = {
+    correct: new Audio("./assets/audio/correct-swipe.wav"),
+    win: new Audio("./assets/audio/win.wav"),
+    lose: new Audio("./assets/audio/lose.wav")
+  };
+
+  Object.values(sounds).forEach((audio) => {
+    audio.preload = "auto";
+  });
+
+  function playSound(name) {
+    const audio = sounds[name];
+    if (!audio) return;
+    try {
+      audio.pause();
+      audio.currentTime = 0;
+      const playback = audio.play();
+      if (playback && typeof playback.catch === "function") {
+        playback.catch(() => {});
+      }
+    } catch (error) {
+      console.debug("Sound playback unavailable.", error);
+    }
+  }
+
   function shuffle(items) {
     const a = [...items];
     for (let i = a.length - 1; i > 0; i -= 1) {
@@ -265,7 +290,10 @@
     questionCard.style.opacity = "0";
 
     const correct = Boolean(value) === Boolean(q.answer);
-    if (correct) state.correct += 1;
+    if (correct) {
+      state.correct += 1;
+      playSound("correct");
+    }
 
     window.setTimeout(() => {
       if (state.mode === "practice") {
@@ -312,6 +340,7 @@
     feedbackCard.classList.add("is-hidden");
     retryButton.textContent = "Play this organism again";
     showScreen(resultScreen);
+    playSound("win");
   }
 
   function finishLoss(q) {
@@ -329,6 +358,7 @@
     feedbackCard.classList.remove("is-hidden");
     retryButton.textContent = "Retry this organism";
     showScreen(resultScreen);
+    playSound("lose");
   }
 
   let drag = null;
