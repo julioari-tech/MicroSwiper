@@ -10,7 +10,17 @@
 </head>
 <body>
   <main class="app-shell" id="app">
-    <section class="screen home-screen" id="homeScreen" aria-labelledby="homeTitle">
+    <section class="screen disclaimer-screen" id="disclaimerScreen" aria-labelledby="disclaimerTitle">
+      <div class="disclaimer-card">
+        <p class="eyebrow">Before you begin</p>
+        <h1 id="disclaimerTitle">AI-assisted study tool</h1>
+        <p>MicroSwipe was created with assistance from artificial intelligence to help organize study content and develop the application.</p>
+        <p>This game is intended for educational use only. AI-generated or AI-organized content may contain errors, so important facts should be verified against your course materials and trusted medical references. It is not a clinical diagnostic tool.</p>
+        <button class="primary-button" id="acceptDisclaimerButton" type="button">I understand — continue</button>
+      </div>
+    </section>
+
+    <section class="screen home-screen is-hidden" id="homeScreen" aria-labelledby="homeTitle">
       <header class="brand-row">
         <div>
           <p class="eyebrow">Medical Microbiology</p>

@@ -2,6 +2,8 @@
   "use strict";
 
   const root = document.getElementById("app");
+  const disclaimerScreen = document.getElementById("disclaimerScreen");
+  const acceptDisclaimerButton = document.getElementById("acceptDisclaimerButton");
   const homeScreen = document.getElementById("homeScreen");
   const gameScreen = document.getElementById("gameScreen");
   const resultScreen = document.getElementById("resultScreen");
@@ -393,7 +395,7 @@
 
   function showScreen(screen) {
     if (screen !== identifyScreen) stopIdentifyTimer();
-    [homeScreen, progressScreen, gameScreen, identifyScreen, resultScreen].forEach((node) => node.classList.add("is-hidden"));
+    [disclaimerScreen, homeScreen, progressScreen, gameScreen, identifyScreen, resultScreen].forEach((node) => node.classList.add("is-hidden"));
     screen.classList.remove("is-hidden");
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -924,6 +926,11 @@
 
   questionCard.addEventListener("pointerup", endDrag);
   questionCard.addEventListener("pointercancel", endDrag);
+
+  acceptDisclaimerButton.addEventListener("click", () => {
+    unlockAudio();
+    showScreen(homeScreen);
+  });
 
   negativeButton.addEventListener("click", () => answer(false, "left"));
   positiveButton.addEventListener("click", () => answer(true, "right"));
