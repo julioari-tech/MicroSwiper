@@ -5,6 +5,20 @@
   const homeScreen = document.getElementById("homeScreen");
   const gameScreen = document.getElementById("gameScreen");
   const resultScreen = document.getElementById("resultScreen");
+  const identifyScreen = document.getElementById("identifyScreen");
+  const organismField = document.getElementById("organismField");
+  const identifyHomeButton = document.getElementById("identifyHomeButton");
+  const identifyProgressFill = document.getElementById("identifyProgressFill");
+  const identifyProgressText = document.getElementById("identifyProgressText");
+  const identifyScore = document.getElementById("identifyScore");
+  const clueTimer = document.getElementById("clueTimer");
+  const clueList = document.getElementById("clueList");
+  const identifyChoices = document.getElementById("identifyChoices");
+  const identifyFeedback = document.getElementById("identifyFeedback");
+  const identifyFeedbackStatus = document.getElementById("identifyFeedbackStatus");
+  const identifyFeedbackAnswer = document.getElementById("identifyFeedbackAnswer");
+  const identifyFeedbackDetail = document.getElementById("identifyFeedbackDetail");
+  const identifyNextButton = document.getElementById("identifyNextButton");
   const progressScreen = document.getElementById("progressScreen");
   const playTabButton = document.getElementById("playTabButton");
   const progressTabButton = document.getElementById("progressTabButton");
@@ -66,7 +80,17 @@
     mode: "survival",
     locked: false,
     retryOrganismId: null,
-    pendingAdvance: false
+    pendingAdvance: false,
+    identifyTargets: [],
+    identifyRound: 0,
+    identifyCorrect: 0,
+    identifyTarget: null,
+    identifyClues: [],
+    identifyVisibleClues: 0,
+    identifyChoices: [],
+    identifyLocked: false,
+    identifyTimer: null,
+    identifyCountdown: 5
   };
 
   const config = window.BACTERIA_SURVIVAL_CONFIG || {};
@@ -112,6 +136,8 @@
       practiceCompletions: 0,
       correctAnswers: 0,
       answeredQuestions: 0,
+      identifyCorrect: 0,
+      identifyWrong: 0,
       lastPlayed: null
     };
   }
@@ -126,6 +152,8 @@
       practiceCompletions: 0,
       correctAnswers: 0,
       answeredQuestions: 0,
+      identifyCorrect: 0,
+      identifyWrong: 0,
       lastPlayed: null
     };
 
@@ -188,7 +216,9 @@
       strong.textContent = organism.name;
       const small = document.createElement("small");
       const practiceText = stats.practiceCompletions ? ` · ${stats.practiceCompletions} practice ${stats.practiceCompletions === 1 ? "round" : "rounds"}` : "";
-      small.textContent = `${formatLastPlayed(stats.lastPlayed)}${practiceText}`;
+      const identifyAttempts = Number(stats.identifyCorrect || 0) + Number(stats.identifyWrong || 0);
+      const identifyText = identifyAttempts ? ` · Identify ${Number(stats.identifyCorrect || 0)}/${identifyAttempts}` : "";
+      small.textContent = `${formatLastPlayed(stats.lastPlayed)}${practiceText}${identifyText}`;
       name.append(strong, small);
 
       const statWrap = document.createElement("div");
@@ -208,7 +238,7 @@
       progressList.appendChild(row);
     });
 
-    const hasAnySaved = Object.values(saved.organisms).some((s) => Number(s.clears || 0) + Number(s.losses || 0) + Number(s.practiceCompletions || 0) > 0);
+    const hasAnySaved = Object.values(saved.organisms).some((s) => Number(s.clears || 0) + Number(s.losses || 0) + Number(s.practiceCompletions || 0) + Number(s.identifyCorrect || 0) + Number(s.identifyWrong || 0) > 0);
     progressEmpty.classList.toggle("is-hidden", filtered.length > 0 && (hasAnySaved || query));
     if (!filtered.length && query) {
       progressEmpty.textContent = "No organisms match that search.";
@@ -362,7 +392,8 @@
   }
 
   function showScreen(screen) {
-    [homeScreen, progressScreen, gameScreen, resultScreen].forEach((node) => node.classList.add("is-hidden"));
+    if (screen !== identifyScreen) stopIdentifyTimer();
+    [homeScreen, progressScreen, gameScreen, identifyScreen, resultScreen].forEach((node) => node.classList.add("is-hidden"));
     screen.classList.remove("is-hidden");
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -395,6 +426,294 @@
   function selectedMode() {
     const chosen = document.querySelector('input[name="mode"]:checked');
     return chosen ? chosen.value : "survival";
+  }
+
+
+  function updateModeUI() {
+    const mode = selectedMode();
+    const identify = mode === "identify";
+    organismField.classList.toggle("is-hidden", identify);
+    startButton.textContent = identify ? "Start identification" : "Start game";
+  }
+
+  function factKey(q) {
+    return String(q?.prompt || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  }
+
+  function clueText(q) {
+    let text = String(q?.prompt || "").trim().replace(/\?+$/, "").trim();
+    const yes = Boolean(q?.answer);
+    if (!text) return "Characteristic available";
+
+    const exactOpposites = [
+      [/^gram-positive$/i, "Gram-positive", "Gram-negative"],
+      [/^gram-negative$/i, "Gram-negative", "Gram-positive"],
+      [/^catalase-positive$/i, "Catalase positive", "Catalase negative"],
+      [/^oxidase-positive$/i, "Oxidase positive", "Oxidase negative"],
+      [/^coagulase-positive$/i, "Coagulase positive", "Coagulase negative"],
+      [/^catalase-negative$/i, "Catalase negative", "Catalase positive"],
+      [/^oxidase-negative$/i, "Oxidase negative", "Oxidase positive"],
+      [/^coagulase-negative$/i, "Coagulase negative", "Coagulase positive"],
+      [/^motile$/i, "Motile", "Nonmotile"],
+      [/^encapsulated$/i, "Encapsulated", "Not encapsulated"],
+      [/^aerobic$/i, "Aerobic", "Not aerobic"],
+      [/^anaerobic$/i, "Anaerobic", "Not anaerobic"],
+      [/^spore-forming$/i, "Spore-forming", "Non–spore-forming"]
+    ];
+    for (const [pattern, positive, negative] of exactOpposites) {
+      if (pattern.test(text)) return yes ? positive : negative;
+    }
+
+    const polarity = text.match(/^(.+?)-(positive|negative)$/i);
+    if (polarity) {
+      const base = polarity[1].replace(/-/g, " ").trim();
+      const statedPositive = polarity[2].toLowerCase() === "positive";
+      const finalPositive = yes ? statedPositive : !statedPositive;
+      return `${base.charAt(0).toUpperCase()}${base.slice(1)} ${finalPositive ? "positive" : "negative"}`;
+    }
+
+    if (/^gram-negative\s+/i.test(text)) return yes ? text : `Not ${text.toLowerCase()}`;
+    if (/^gram-positive\s+/i.test(text)) return yes ? text : `Not ${text.toLowerCase()}`;
+    if (/^can cause\s+/i.test(text)) {
+      const rest = text.replace(/^can cause\s+/i, "");
+      return yes ? `Causes ${rest}` : `Does not cause ${rest}`;
+    }
+    if (/^can trigger\s+/i.test(text)) {
+      const rest = text.replace(/^can trigger\s+/i, "");
+      return yes ? `Can trigger ${rest}` : `Does not trigger ${rest}`;
+    }
+    if (/^associated with\s+/i.test(text)) return yes ? text : `Not ${text.toLowerCase()}`;
+    if (/^produces\s+/i.test(text)) return yes ? text : `Does not ${text.toLowerCase()}`;
+    if (/^ferments\s+/i.test(text)) return yes ? text : `Does not ${text.toLowerCase()}`;
+    if (/^forms\s+/i.test(text)) return yes ? text : `Does not ${text.toLowerCase()}`;
+    if (/^positive\s+/i.test(text)) return yes ? text : `Negative ${text.replace(/^positive\s+/i, "")}`;
+    return yes ? text : `${text}: No`;
+  }
+
+  function organismQuestions(organism) {
+    return state.data.questions.filter((q) => q.organismId === organism.id && q.prompt);
+  }
+
+  function buildIdentifyClues(organism) {
+    const all = organismQuestions(organism);
+    const frequency = new Map();
+    state.data.questions.forEach((q) => {
+      const key = `${factKey(q)}|${Boolean(q.answer)}`;
+      frequency.set(key, (frequency.get(key) || 0) + 1);
+    });
+    const seen = new Set();
+    const unique = [];
+    all.forEach((q) => {
+      const text = clueText(q);
+      const clean = text.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+      if (!clean || seen.has(clean)) return;
+      seen.add(clean);
+      unique.push({
+        text,
+        category: q.category || "General",
+        highYield: Boolean(q.highYield),
+        frequency: frequency.get(`${factKey(q)}|${Boolean(q.answer)}`) || 1
+      });
+    });
+    // Common facts appear first; rare/distinguishing facts arrive later.
+    return unique.sort((a, b) => (b.frequency - a.frequency) || (Number(b.highYield) - Number(a.highYield)) || a.text.localeCompare(b.text));
+  }
+
+  function similarityScore(target, candidate) {
+    if (!candidate || candidate.id === target.id) return -Infinity;
+    let score = 0;
+    if (target.gramStain && candidate.gramStain && target.gramStain === candidate.gramStain) score += 8;
+    if (target.morphology && candidate.morphology && target.morphology === candidate.morphology) score += 6;
+    if (target.arrangement && candidate.arrangement && target.arrangement === candidate.arrangement) score += 3;
+    const targetGenus = target.name.split(/\s+/)[0];
+    const candidateGenus = candidate.name.split(/\s+/)[0];
+    if (targetGenus && targetGenus === candidateGenus) score += 5;
+
+    const targetFacts = new Map(organismQuestions(target).map((q) => [factKey(q), Boolean(q.answer)]));
+    organismQuestions(candidate).forEach((q) => {
+      const key = factKey(q);
+      if (!targetFacts.has(key)) return;
+      score += targetFacts.get(key) === Boolean(q.answer) ? 4 : 1;
+    });
+    return score + Math.random() * 1.5;
+  }
+
+  function buildIdentifyChoices(target) {
+    const candidates = state.data.organisms
+      .filter((o) => o && o.id && o.name && o.id !== target.id && organismQuestions(o).length)
+      .map((o) => ({ organism: o, score: similarityScore(target, o) }))
+      .sort((a, b) => b.score - a.score);
+    const pool = candidates.slice(0, Math.max(8, Math.min(14, candidates.length)));
+    const distractors = shuffle(pool).sort((a, b) => b.score - a.score).slice(0, 3).map((x) => x.organism);
+    return shuffle([target, ...distractors]);
+  }
+
+  function stopIdentifyTimer() {
+    if (state.identifyTimer) {
+      window.clearInterval(state.identifyTimer);
+      state.identifyTimer = null;
+    }
+  }
+
+  function renderIdentifyClues() {
+    clueList.replaceChildren();
+    state.identifyClues.slice(0, state.identifyVisibleClues).forEach((clue, index) => {
+      const row = document.createElement("div");
+      row.className = "clue-item";
+      const num = document.createElement("span");
+      num.className = "clue-number";
+      num.textContent = String(index + 1);
+      const text = document.createElement("strong");
+      text.textContent = clue.text;
+      row.append(num, text);
+      clueList.appendChild(row);
+    });
+  }
+
+  function revealIdentifyClue() {
+    if (state.identifyLocked || state.identifyVisibleClues >= state.identifyClues.length) return;
+    state.identifyVisibleClues += 1;
+    renderIdentifyClues();
+    if (state.identifyVisibleClues >= state.identifyClues.length) {
+      stopIdentifyTimer();
+      clueTimer.textContent = "All clues revealed";
+      return;
+    }
+    state.identifyCountdown = 5;
+    clueTimer.textContent = "Next clue in 5s";
+  }
+
+  function startIdentifyTimer() {
+    stopIdentifyTimer();
+    if (state.identifyClues.length <= state.identifyVisibleClues) {
+      clueTimer.textContent = "All clues revealed";
+      return;
+    }
+    state.identifyCountdown = 5;
+    clueTimer.textContent = "Next clue in 5s";
+    state.identifyTimer = window.setInterval(() => {
+      if (state.identifyLocked) return;
+      state.identifyCountdown -= 1;
+      if (state.identifyCountdown <= 0) {
+        revealIdentifyClue();
+      } else {
+        clueTimer.textContent = `Next clue in ${state.identifyCountdown}s`;
+      }
+    }, 1000);
+  }
+
+  function recordIdentifyResult(organism, correct) {
+    if (!organism) return;
+    const progress = loadProgress();
+    const key = progressKey(organism);
+    const current = progress.organisms[key] || {
+      clears: 0, losses: 0, practiceCompletions: 0, correctAnswers: 0, answeredQuestions: 0,
+      identifyCorrect: 0, identifyWrong: 0, lastPlayed: null
+    };
+    if (correct) current.identifyCorrect = Number(current.identifyCorrect || 0) + 1;
+    else current.identifyWrong = Number(current.identifyWrong || 0) + 1;
+    current.lastPlayed = new Date().toISOString();
+    current.organismName = organism.name;
+    progress.organisms[key] = current;
+    saveProgress(progress);
+  }
+
+  function startIdentifySession() {
+    unlockAudio();
+    const available = state.data.organisms.filter((o) => o && o.id && o.name && organismQuestions(o).length >= 2);
+    const rounds = Math.min(10, available.length);
+    state.mode = "identify";
+    state.identifyTargets = shuffle(available).slice(0, rounds);
+    state.identifyRound = 0;
+    state.identifyCorrect = 0;
+    showScreen(identifyScreen);
+    startIdentifyRound();
+  }
+
+  function startIdentifyRound() {
+    stopIdentifyTimer();
+    const target = state.identifyTargets[state.identifyRound];
+    if (!target) {
+      finishIdentifySession();
+      return;
+    }
+    state.identifyTarget = target;
+    state.identifyClues = buildIdentifyClues(target);
+    state.identifyVisibleClues = Math.min(1, state.identifyClues.length);
+    state.identifyChoices = buildIdentifyChoices(target);
+    state.identifyLocked = false;
+    identifyFeedback.classList.add("is-hidden");
+    identifyProgressText.textContent = `${state.identifyRound + 1} / ${state.identifyTargets.length}`;
+    identifyProgressFill.style.width = `${Math.round((state.identifyRound / Math.max(1, state.identifyTargets.length)) * 100)}%`;
+    identifyScore.textContent = `${state.identifyCorrect} ✓`;
+    renderIdentifyClues();
+    identifyChoices.replaceChildren();
+    state.identifyChoices.forEach((organism, index) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "identify-choice";
+      button.dataset.organismId = organism.id;
+      button.innerHTML = `<span>${organism.name}</span><small>${index + 1}</small>`;
+      button.addEventListener("click", () => answerIdentify(organism.id));
+      identifyChoices.appendChild(button);
+    });
+    startIdentifyTimer();
+  }
+
+  function answerIdentify(organismId) {
+    if (state.identifyLocked || !state.identifyTarget) return;
+    unlockAudio();
+    state.identifyLocked = true;
+    stopIdentifyTimer();
+    const correct = organismId === state.identifyTarget.id;
+    if (correct) {
+      state.identifyCorrect += 1;
+      playSound("correct");
+    } else {
+      playSound("lose");
+    }
+    recordIdentifyResult(state.identifyTarget, correct);
+    identifyScore.textContent = `${state.identifyCorrect} ✓`;
+
+    [...identifyChoices.querySelectorAll(".identify-choice")].forEach((button) => {
+      button.disabled = true;
+      if (button.dataset.organismId === state.identifyTarget.id) button.classList.add("correct");
+      else if (button.dataset.organismId === organismId) button.classList.add("wrong");
+    });
+
+    identifyFeedbackStatus.textContent = correct ? "Correct" : "Incorrect";
+    identifyFeedbackStatus.className = `feedback-status ${correct ? "correct" : "wrong"}`;
+    identifyFeedbackAnswer.textContent = state.identifyTarget.name;
+    const used = state.identifyVisibleClues;
+    identifyFeedbackDetail.textContent = correct
+      ? `Identified after ${used} ${used === 1 ? "clue" : "clues"}.`
+      : `The correct organism was ${state.identifyTarget.name}. You had ${used} ${used === 1 ? "clue" : "clues"} revealed.`;
+    identifyNextButton.textContent = state.identifyRound + 1 >= state.identifyTargets.length ? "See results" : "Next organism";
+    identifyFeedback.classList.remove("is-hidden");
+    identifyNextButton.focus({ preventScroll: true });
+  }
+
+  function nextIdentifyRound() {
+    if (!state.identifyLocked) return;
+    state.identifyRound += 1;
+    if (state.identifyRound >= state.identifyTargets.length) finishIdentifySession();
+    else startIdentifyRound();
+  }
+
+  function finishIdentifySession() {
+    stopIdentifyTimer();
+    identifyProgressFill.style.width = "100%";
+    resultMark.textContent = state.identifyCorrect >= Math.ceil(state.identifyTargets.length * 0.7) ? "✓" : "•";
+    resultMark.classList.toggle("dead", state.identifyCorrect < Math.ceil(state.identifyTargets.length * 0.5));
+    resultEyebrow.textContent = "Identification complete";
+    resultTitle.textContent = "Round complete";
+    resultOrganism.textContent = `${state.identifyCorrect} / ${state.identifyTargets.length} organisms identified`;
+    resultSummary.textContent = `${Math.round((state.identifyCorrect / Math.max(1, state.identifyTargets.length)) * 100)}% correct.`;
+    feedbackCard.classList.add("is-hidden");
+    againButton.textContent = "New identification round";
+    retryButton.textContent = "Back to home";
+    showScreen(resultScreen);
+    playSound("win");
   }
 
   function chooseOrganism(requestedId) {
@@ -610,13 +929,30 @@
   positiveButton.addEventListener("click", () => answer(true, "right"));
   continueButton.addEventListener("click", continuePractice);
 
-  startButton.addEventListener("click", () => startGame(organismSelect.value));
+  startButton.addEventListener("click", () => {
+    if (selectedMode() === "identify") startIdentifySession();
+    else startGame(organismSelect.value);
+  });
   homeButton.addEventListener("click", () => showScreen(homeScreen));
   againButton.addEventListener("click", () => {
+    if (state.mode === "identify") {
+      startIdentifySession();
+      return;
+    }
     organismSelect.value = "random";
     startGame("random");
   });
-  retryButton.addEventListener("click", () => startGame(state.retryOrganismId));
+  retryButton.addEventListener("click", () => {
+    if (state.mode === "identify") {
+      showScreen(homeScreen);
+      return;
+    }
+    startGame(state.retryOrganismId);
+  });
+  identifyHomeButton.addEventListener("click", () => showScreen(homeScreen));
+  identifyNextButton.addEventListener("click", nextIdentifyRound);
+  document.querySelectorAll('input[name="mode"]').forEach((radio) => radio.addEventListener("change", updateModeUI));
+  updateModeUI();
 
   progressTabButton.addEventListener("click", openProgress);
   playTabButton.addEventListener("click", () => showScreen(homeScreen));
@@ -630,8 +966,19 @@
   });
 
   root.addEventListener("keydown", (event) => {
-    if (gameScreen.classList.contains("is-hidden") || state.locked) return;
     if (event.target && ["INPUT", "SELECT", "TEXTAREA"].includes(event.target.tagName)) return;
+    if (!identifyScreen.classList.contains("is-hidden")) {
+      if (!state.identifyLocked && /^[1-4]$/.test(event.key)) {
+        const index = Number(event.key) - 1;
+        const choice = state.identifyChoices[index];
+        if (choice) {
+          event.preventDefault();
+          answerIdentify(choice.id);
+        }
+      }
+      return;
+    }
+    if (gameScreen.classList.contains("is-hidden") || state.locked) return;
     if (event.key === "ArrowLeft") {
       event.preventDefault();
       answer(false, "left");

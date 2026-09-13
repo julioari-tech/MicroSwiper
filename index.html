@@ -33,10 +33,12 @@
       </div>
 
       <section class="setup-panel" aria-label="Game setup">
-        <label for="organismSelect">Organism</label>
-        <select id="organismSelect">
-          <option value="random">Random organism</option>
-        </select>
+        <div id="organismField">
+          <label for="organismSelect">Organism</label>
+          <select id="organismSelect">
+            <option value="random">Random organism</option>
+          </select>
+        </div>
 
         <fieldset class="mode-picker">
           <legend>Mode</legend>
@@ -47,6 +49,10 @@
           <label class="mode-option">
             <input type="radio" name="mode" value="practice">
             <span><strong>Practice</strong><small>See an explanation after every answer.</small></span>
+          </label>
+          <label class="mode-option">
+            <input type="radio" name="mode" value="identify">
+            <span><strong>Identify</strong><small>Characteristics appear every 5 seconds. Pick the organism.</small></span>
           </label>
         </fieldset>
 
@@ -126,6 +132,39 @@
       </div>
 
       <p class="keyboard-hint">Keyboard: ← negative · → positive</p>
+    </section>
+
+
+    <section class="screen identify-screen is-hidden" id="identifyScreen" aria-labelledby="identifyTitle">
+      <header class="game-header">
+        <button class="icon-button" id="identifyHomeButton" type="button" aria-label="Return to home">×</button>
+        <div class="progress-wrap" aria-label="Identification round progress">
+          <div class="progress-track"><div class="progress-fill" id="identifyProgressFill"></div></div>
+          <span id="identifyProgressText">1 / 10</span>
+        </div>
+        <div class="identify-score" id="identifyScore">0 ✓</div>
+      </header>
+
+      <section class="identify-heading">
+        <p class="eyebrow">Identify the organism</p>
+        <h2 id="identifyTitle">Which organism is it?</h2>
+        <div class="clue-timer" id="clueTimer" aria-live="polite">Next clue in 5s</div>
+      </section>
+
+      <section class="clue-panel" aria-label="Revealed characteristics">
+        <div class="clue-list" id="clueList" aria-live="polite"></div>
+      </section>
+
+      <div class="identify-choices" id="identifyChoices" aria-label="Organism choices"></div>
+
+      <section class="identify-feedback is-hidden" id="identifyFeedback" aria-live="assertive">
+        <p class="feedback-status" id="identifyFeedbackStatus"></p>
+        <h3 id="identifyFeedbackAnswer"></h3>
+        <p id="identifyFeedbackDetail"></p>
+        <button class="primary-button" id="identifyNextButton" type="button">Next organism</button>
+      </section>
+
+      <p class="keyboard-hint">Keyboard: 1–4 selects an answer</p>
     </section>
 
     <section class="screen result-screen is-hidden" id="resultScreen" aria-labelledby="resultTitle">
