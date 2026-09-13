@@ -292,7 +292,37 @@ button:not(:disabled):active { transform: translateY(1px) scale(.99); }
   .progress-row { grid-template-columns: 1fr; }
   .progress-stats { justify-content: space-between; }
 }
-\n\n/* Identify-the-organism mode */\n#organismField.is-hidden { display: none; }\n.identify-screen { padding-bottom: 38px; }\n.identify-score { min-width: 54px; text-align: right; color: var(--positive); font-weight: 900; font-variant-numeric: tabular-nums; }\n.identify-heading { text-align: center; padding: 8px 0 22px; }\n.identify-heading h2 { margin: 0 0 12px; font-size: clamp(1.8rem, 7vw, 2.65rem); letter-spacing: -.045em; }\n.clue-timer { display: inline-flex; align-items: center; justify-content: center; min-height: 31px; padding: 6px 11px; border: 1px solid var(--border); border-radius: 999px; background: var(--panel-2); color: var(--muted); font-size: .72rem; font-weight: 800; font-variant-numeric: tabular-nums; }\n.clue-panel { width: min(100%, 600px); margin: 0 auto 18px; padding: 18px; border: 1px solid var(--border); border-radius: 22px; background: var(--panel); box-shadow: var(--shadow); }\n.clue-list { display: grid; gap: 9px; min-height: 74px; }\n.clue-item { display: grid; grid-template-columns: 30px minmax(0,1fr); gap: 10px; align-items: center; padding: 11px 12px; border-radius: 14px; background: var(--panel-2); border: 1px solid var(--border); animation: clue-in .25s ease both; }\n.clue-number { width: 28px; height: 28px; display: grid; place-items: center; border-radius: 50%; background: var(--accent-soft); color: var(--accent-strong); font-size: .72rem; font-weight: 900; }\n.clue-item strong { min-width: 0; font-size: .95rem; line-height: 1.25; }\n@keyframes clue-in { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }\n.identify-choices { width: min(100%, 600px); margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }\n.identify-choice { min-height: 72px; padding: 13px 14px; text-align: left; border: 1px solid var(--border); border-radius: 16px; background: var(--panel); color: var(--text); font-weight: 800; line-height: 1.2; }\n.identify-choice small { display: block; margin-top: 5px; color: var(--muted); font-size: .67rem; font-weight: 600; }\n.identify-choice.correct { border-color: color-mix(in srgb, var(--positive) 55%, var(--border)); background: var(--positive-soft); color: var(--positive); }\n.identify-choice.wrong { border-color: color-mix(in srgb, var(--negative) 55%, var(--border)); background: var(--negative-soft); color: var(--negative); }\n.identify-choice:disabled { opacity: 1; }\n.identify-feedback { width: min(100%, 600px); margin: 16px auto 0; padding: 18px; border: 1px solid var(--border); border-radius: 18px; background: var(--panel); }\n.identify-feedback h3 { margin: 5px 0 7px; font-size: 1.25rem; }\n.identify-feedback > p:not(.feedback-status) { margin: 0 0 13px; color: var(--muted); line-height: 1.45; }\n.identify-feedback .primary-button { width: 100%; }\n@media (max-width: 520px) {\n  .identify-choices { grid-template-columns: 1fr; }\n  .identify-choice { min-height: 60px; }\n  .clue-panel { padding: 14px; border-radius: 18px; }\n}\n
+
+
+/* Identify-the-organism mode */
+#organismField.is-hidden { display: none; }
+.identify-screen { padding-bottom: 38px; }
+.identify-score { min-width: 54px; text-align: right; color: var(--positive); font-weight: 900; font-variant-numeric: tabular-nums; }
+.identify-heading { text-align: center; padding: 8px 0 22px; }
+.identify-heading h2 { margin: 0 0 12px; font-size: clamp(1.8rem, 7vw, 2.65rem); letter-spacing: -.045em; }
+.clue-timer { display: inline-flex; align-items: center; justify-content: center; min-height: 31px; padding: 6px 11px; border: 1px solid var(--border); border-radius: 999px; background: var(--panel-2); color: var(--muted); font-size: .72rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.clue-panel { width: min(100%, 600px); margin: 0 auto 18px; padding: 18px; border: 1px solid var(--border); border-radius: 22px; background: var(--panel); box-shadow: var(--shadow); }
+.clue-list { display: grid; gap: 9px; min-height: 74px; }
+.clue-item { display: grid; grid-template-columns: 30px minmax(0,1fr); gap: 10px; align-items: center; padding: 11px 12px; border-radius: 14px; background: var(--panel-2); border: 1px solid var(--border); animation: clue-in .25s ease both; }
+.clue-number { width: 28px; height: 28px; display: grid; place-items: center; border-radius: 50%; background: var(--accent-soft); color: var(--accent-strong); font-size: .72rem; font-weight: 900; }
+.clue-item strong { min-width: 0; font-size: .95rem; line-height: 1.25; }
+@keyframes clue-in { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }
+.identify-choices { width: min(100%, 600px); margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.identify-choice { min-height: 72px; padding: 13px 14px; text-align: left; border: 1px solid var(--border); border-radius: 16px; background: var(--panel); color: var(--text); font-weight: 800; line-height: 1.2; }
+.identify-choice small { display: block; margin-top: 5px; color: var(--muted); font-size: .67rem; font-weight: 600; }
+.identify-choice.correct { border-color: color-mix(in srgb, var(--positive) 55%, var(--border)); background: var(--positive-soft); color: var(--positive); }
+.identify-choice.wrong { border-color: color-mix(in srgb, var(--negative) 55%, var(--border)); background: var(--negative-soft); color: var(--negative); }
+.identify-choice:disabled { opacity: 1; }
+.identify-feedback { width: min(100%, 600px); margin: 16px auto 0; padding: 18px; border: 1px solid var(--border); border-radius: 18px; background: var(--panel); }
+.identify-feedback h3 { margin: 5px 0 7px; font-size: 1.25rem; }
+.identify-feedback > p:not(.feedback-status) { margin: 0 0 13px; color: var(--muted); line-height: 1.45; }
+.identify-feedback .primary-button { width: 100%; }
+@media (max-width: 520px) {
+  .identify-choices { grid-template-columns: 1fr; }
+  .identify-choice { min-height: 60px; }
+  .clue-panel { padding: 14px; border-radius: 18px; }
+}
+
 
 /* Startup disclaimer */
 .disclaimer-screen {

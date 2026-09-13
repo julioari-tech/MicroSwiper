@@ -1,0 +1,12 @@
+COMPLETE BUILD — September 13, 2026
+
+This is not a patch. Upload the entire contents to the MicroSwiper GitHub repository.
+
+Contains:
+- AI startup disclaimer
+- Survival mode
+- Practice mode
+- Identify mode with 4 answer choices and a new clue every 5 seconds
+- Progress tab with persistent per-device statistics
+- Current Sketchy-based bacteria database
+- Sound effects generated in JavaScript
